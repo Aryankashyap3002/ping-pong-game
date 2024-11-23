@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let scorePlayer1 = 0;
     let scorePlayer2 = 0;
     let gamestarted = false;
-    let ball = { x: 200, y: -10 };
+    let ball = { x: 200, y: 800 };
     let batPlayer1 = [{ x: 180, y: -10 }, { x: 200, y: -10 }, { x: 220, y: -10 }];
     let batPlayer2 = [{ x: 180, y: 800 }, { x: 200, y: 800 }, { x: 220, y: 800 }];
     let intervalId;
@@ -48,35 +48,32 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (ball.y < -10) {
             console.log('player2 scores');
             scorePlayer2++;
-            ball = { x: 200, y: 800 }; 
+            ball = { x: 200, y: 790 }; 
         } 
     }
 
-    function isHit(ball, batPlayer1) {
+    function isHit(ball, batPlayer1, batPlayer2) {
         // console.log("Ball position:", ball.x, ball.y);
         // console.log("Player 1 bat positions:", batPlayer1.map(cell => `(${cell.x},${cell.y})`));
         
-        const leftX = Math.min(...batPlayer1.map(cell => cell.x)) - 10;
-        const rightX = Math.max(...batPlayer1.map(cell => cell.x)) + 10;
+        const leftX1 = Math.min(...batPlayer1.map(cell => cell.x)) - 15;  
+        const rightX1 = Math.max(...batPlayer1.map(cell => cell.x)) + 15;  
         
-        const player1Hit = batPlayer1.some((batCell) => {
-            const sameY = batCell.y === ball.y;
-            const withinXRange = ball.x >= leftX && ball.x <= rightX;
-            
-            const isHit = sameY && withinXRange;
-            if (isHit) {
-                // console.log("Hit Player 1 at position between:", leftX, "and", rightX);
-                // console.log("Ball position:", ball.x);
-            }
-            return isHit;
-        });
+        const player1Hit = batPlayer1.some((batCell) => {  
+            const sameY = batCell.y === ball.y;  
+            const withinXRange = ball.x >= leftX1 && ball.x <= rightX1;  
+            return sameY && withinXRange;  
+        }); 
 
-        const player2Hit = batPlayer2.some((batCell) => {
-            const sameY = batCell.y === ball.y;
-            const withinXRange = ball.x >= (Math.min(...batPlayer2.map(cell => cell.x)) - 10) && 
-                                (ball.x <= Math.max(...batPlayer2.map(cell => cell.x)) + 10);
-            return sameY && withinXRange;
-        });
+        const leftX2 = Math.min(...batPlayer2.map(cell => cell.x)) - 15;  
+        const rightX2 = Math.max(...batPlayer2.map(cell => cell.x)) + 15;  
+        
+        const player2Hit = batPlayer2.some((batCell) => {  
+            const sameY = batCell.y === ball.y;  
+            const withinXRange = ball.x >= leftX2 && ball.x <= rightX2;  
+            return sameY && withinXRange;  
+        });  
+  
     
         if (player1Hit) return 1;
         if (player2Hit) return 2;
@@ -199,13 +196,18 @@ document.addEventListener('DOMContentLoaded', function () {
             if(isGameOver()) {
                 clearInterval(intervalId);
                 gameStarted= false;
-                alert(`Game Over, P1 score: ${scorePlayer1} and P2 score: ${scorePlayer2}`);
+                if(scorePlayer1 > scorePlayer2) {
+                    alert(`Player1 Wins `);
+                } else {
+                    alert(`Player2 Wins`);
+                }
+                
             }
             drawBatAndBall();
             updateBat();
     
-            const hitResult = isHit(ball, batPlayer1);
-            // console.log("Checking collision every frame: ", hitResult);
+            const hitResult = isHit(ball, batPlayer1, batPlayer2);
+            console.log("Checking collision every frame: ", hitResult);
     
             if (hitResult === 1 || hitResult === 2) {
                 if (dxb === 0 && dyb === 0) {
