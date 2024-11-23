@@ -9,7 +9,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let ball = { x: 200, y: -10 };
     let batPlayer1 = [{ x: 180, y: -10 }, { x: 200, y: -10 }, { x: 220, y: -10 }];
     let batPlayer2 = [{ x: 180, y: 800 }, { x: 200, y: 800 }, { x: 220, y: 800 }];
-
+    let intervalId;
+    
     let dx1 = 0;
     let dy1 = 0;
 
@@ -20,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let dyb = 0;
 
     function changeDirection(e) {
-        console.log(e);
+        // console.log(e);
         e.preventDefault(); 
         if (e.key === 'ArrowUp') {
             dx1 = -cellSize;
@@ -40,12 +41,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function moveBall() {      
         ball = {x: ball.x + dxb, y: ball.y + dyb};  
-        
+        if(ball.y > 800) {
+            console.log('player1 scores');
+            scorePlayer1++;
+            ball = { x: 200, y: -10 };
+        } else if (ball.y < -10) {
+            console.log('player2 scores');
+            scorePlayer2++;
+            ball = { x: 200, y: 800 }; 
+        } 
     }
 
     function isHit(ball, batPlayer1) {
-        console.log("Ball position:", ball.x, ball.y);
-        console.log("Player 1 bat positions:", batPlayer1.map(cell => `(${cell.x},${cell.y})`));
+        // console.log("Ball position:", ball.x, ball.y);
+        // console.log("Player 1 bat positions:", batPlayer1.map(cell => `(${cell.x},${cell.y})`));
         
         const leftX = Math.min(...batPlayer1.map(cell => cell.x)) - 10;
         const rightX = Math.max(...batPlayer1.map(cell => cell.x)) + 10;
@@ -56,8 +65,8 @@ document.addEventListener('DOMContentLoaded', function () {
             
             const isHit = sameY && withinXRange;
             if (isHit) {
-                console.log("Hit Player 1 at position between:", leftX, "and", rightX);
-                console.log("Ball position:", ball.x);
+                // console.log("Hit Player 1 at position between:", leftX, "and", rightX);
+                // console.log("Ball position:", ball.x);
             }
             return isHit;
         });
@@ -177,13 +186,26 @@ document.addEventListener('DOMContentLoaded', function () {
         gameArena.appendChild(ballElement);
     }
 
+
+    function isGameOver() {
+        if( scorePlayer1 >= 5 || scorePlayer2 >= 5) {
+            return true;
+        }
+        return false;
+    }
+
     function gameLoop() {
-        setInterval(() => {
+        intervalId = setInterval(() => {
+            if(isGameOver()) {
+                clearInterval(intervalId);
+                gameStarted= false;
+                alert(`Game Over, P1 score: ${scorePlayer1} and P2 score: ${scorePlayer2}`);
+            }
             drawBatAndBall();
             updateBat();
     
             const hitResult = isHit(ball, batPlayer1);
-            console.log("Checking collision every frame: ", hitResult);
+            // console.log("Checking collision every frame: ", hitResult);
     
             if (hitResult === 1 || hitResult === 2) {
                 if (dxb === 0 && dyb === 0) {
@@ -203,6 +225,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
     
             moveBall();
+            drawScoreBoard();
         }, 30);
     }
     
@@ -214,6 +237,12 @@ document.addEventListener('DOMContentLoaded', function () {
             document.addEventListener('keydown', changeDirection);
             document.addEventListener('keyup', stopBat);
         }
+    }
+
+    function drawScoreBoard() {
+        const scoreBoard = document.querySelector('#score-board');
+        scoreBoard.textContent = `Score P1: ${scorePlayer1} \n Score P2: ${scorePlayer2} `;
+
     }
 
     function initiateGame() {
