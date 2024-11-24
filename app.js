@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const cellSize = 20;
     let scorePlayer1 = 0;
     let scorePlayer2 = 0;
+    // let modeOfPlaying = {1: "TwoPlayer", 2: "Online"};
+    let gameMode = '';
     let gamestarted = false;
     let ball = { x: 200, y: 800 };
     let batPlayer1 = [{ x: 180, y: -10 }, { x: 200, y: -10 }, { x: 220, y: -10 }];
@@ -42,11 +44,11 @@ document.addEventListener('DOMContentLoaded', function () {
     function moveBall() {      
         ball = {x: ball.x + dxb, y: ball.y + dyb};  
         if(ball.y > 800) {
-            console.log('player1 scores');
+            // console.log('player1 scores');
             scorePlayer1++;
             ball = { x: 200, y: -10 };
         } else if (ball.y < -10) {
-            console.log('player2 scores');
+            // console.log('player2 scores');
             scorePlayer2++;
             ball = { x: 200, y: 790 }; 
         } 
@@ -89,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    
+   
 
     function updateBat() {
         const batLength = 3;
@@ -125,33 +127,138 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
+        if(gameMode === 'twoPlayer') {
+            if (dx2 !== 0 || dy2 !== 0) {
+                const newPosPlayer2 = {
+                    x: batPlayer2[0].x + dx2,
+                    y: batPlayer2[0].y
+                };
+    
+                const newPosUpPlayer2 = {
+                    x: batPlayer2[batPlayer2.length - 1].x + dx2,
+                    y: batPlayer2[batPlayer2.length - 1].y
+                };
+    
+                if (
+                    newPosPlayer2.x >= 0 &&
+                    newPosPlayer2.x <= arenaHeight - cellSize &&
+                    newPosUpPlayer2.x >= 0 &&
+                    newPosUpPlayer2.x <= arenaHeight - cellSize
+                ) {
+                    if (dx2 > 0) {
+                        batPlayer2.push(newPosUpPlayer2); 
+                        if (batPlayer2.length > batLength) {
+                            batPlayer2.shift();
+                        }
+                    } else {
+                        batPlayer2.unshift(newPosPlayer2);
+                        if (batPlayer2.length > batLength) {
+                            batPlayer2.pop();
+                        }
+                    }
+                }
+            }
+        } else if (gameMode === 'single') {
+            // Computer player logic
+            const ballX = ball.x;
+            const ballY = ball.y;
+            const batCenterX = (batPlayer2[0].x + batPlayer2[2].x) / 2;
+            
+            if (ballY > 0 && ballY < 800) {
+                // Predict where the ball will intersect with the computer's y-position
+                const slope = dyb / dxb; // Ball's movement slope
+                const predictedX = ballX + (batPlayer2[0].y - ballY) / slope;
+                
+                // Constrain predicted X to stay within arena bounds
+                const constrainedPredictedX = Math.max(
+                    cellSize, 
+                    Math.min(arenaHeight - cellSize * 2, predictedX)
+                );
+                
+                const reactionThreshold = 40;
+                const errorMargin = Math.random() * 20 - 10;
+                const targetX = constrainedPredictedX + errorMargin;
         
-        if (dx2 !== 0 || dy2 !== 0) {
-            const newPosPlayer2 = {
-                x: batPlayer2[0].x + dx2,
-                y: batPlayer2[0].y
-            };
-
-            const newPosUpPlayer2 = {
-                x: batPlayer2[batPlayer2.length - 1].x + dx2,
-                y: batPlayer2[batPlayer2.length - 1].y
-            };
-
-            if (
-                newPosPlayer2.x >= 0 &&
-                newPosPlayer2.x <= arenaHeight - cellSize &&
-                newPosUpPlayer2.x >= 0 &&
-                newPosUpPlayer2.x <= arenaHeight - cellSize
-            ) {
-                if (dx2 > 0) {
-                    batPlayer2.push(newPosUpPlayer2); 
-                    if (batPlayer2.length > batLength) {
-                        batPlayer2.shift();
+                // Only move if the ball is moving towards the computer's side
+                if (dyb > 0) {
+                    if (Math.abs(batCenterX - targetX) > reactionThreshold) {
+                        if (batCenterX < targetX) {
+                            // Move right
+                            dx2 = cellSize;
+                            // Create new bat positions maintaining 3-segment length
+                            const newBat = [];
+                            const baseX = batPlayer2[2].x + cellSize; // Use rightmost segment as reference
+                            for (let i = 0; i < 3; i++) {
+                                newBat.push({
+                                    x: baseX - (cellSize * (2-i)),
+                                    y: batPlayer2[0].y
+                                });
+                            }
+                            // Only update if within bounds
+                            if (newBat[0].x >= 0 && newBat[2].x <= arenaHeight - cellSize) {
+                                batPlayer2.length = 0; // Clear current bat
+                                newBat.forEach(segment => batPlayer2.push(segment));
+                            }
+                        } else {
+                            // Move left
+                            dx2 = -cellSize;
+                            // Create new bat positions maintaining 3-segment length
+                            const newBat = [];
+                            const baseX = batPlayer2[0].x - cellSize; // Use leftmost segment as reference
+                            for (let i = 0; i < 3; i++) {
+                                newBat.push({
+                                    x: baseX + (cellSize * i),
+                                    y: batPlayer2[0].y
+                                });
+                            }
+                            // Only update if within bounds
+                            if (newBat[0].x >= 0 && newBat[2].x <= arenaHeight - cellSize) {
+                                batPlayer2.length = 0; // Clear current bat
+                                newBat.forEach(segment => batPlayer2.push(segment));
+                            }
+                        }
+                    } else {
+                        dx2 = 0;
                     }
                 } else {
-                    batPlayer2.unshift(newPosPlayer2);
-                    if (batPlayer2.length > batLength) {
-                        batPlayer2.pop();
+                    // Return to center when ball is moving away
+                    const centerX = arenaHeight / 2 - cellSize;
+                    if (Math.abs(batCenterX - centerX) > reactionThreshold) {
+                        if (batCenterX < centerX) {
+                            dx2 = cellSize;
+                            // Create new bat positions maintaining 3-segment length
+                            const newBat = [];
+                            const baseX = batPlayer2[2].x + cellSize;
+                            for (let i = 0; i < 3; i++) {
+                                newBat.push({
+                                    x: baseX - (cellSize * (2-i)),
+                                    y: batPlayer2[0].y
+                                });
+                            }
+                            // Only update if within bounds
+                            if (newBat[0].x >= 0 && newBat[2].x <= arenaHeight - cellSize) {
+                                batPlayer2.length = 0;
+                                newBat.forEach(segment => batPlayer2.push(segment));
+                            }
+                        } else {
+                            dx2 = -cellSize;
+                            // Create new bat positions maintaining 3-segment length
+                            const newBat = [];
+                            const baseX = batPlayer2[0].x - cellSize;
+                            for (let i = 0; i < 3; i++) {
+                                newBat.push({
+                                    x: baseX + (cellSize * i),
+                                    y: batPlayer2[0].y
+                                });
+                            }
+                            // Only update if within bounds
+                            if (newBat[0].x >= 0 && newBat[2].x <= arenaHeight - cellSize) {
+                                batPlayer2.length = 0;
+                                newBat.forEach(segment => batPlayer2.push(segment));
+                            }
+                        }
+                    } else {
+                        dx2 = 0;
                     }
                 }
             }
@@ -207,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function () {
             updateBat();
     
             const hitResult = isHit(ball, batPlayer1, batPlayer2);
-            console.log("Checking collision every frame: ", hitResult);
+            // console.log("Checking collision every frame: ", hitResult);
     
             if (hitResult === 1 || hitResult === 2) {
                 if (dxb === 0 && dyb === 0) {
@@ -256,8 +363,13 @@ document.addEventListener('DOMContentLoaded', function () {
         startButton.classList.add('start-btn');
         document.body.appendChild(startButton);
 
+
         startButton.addEventListener('click', function () {
             startButton.style.display = 'none';
+
+            const selectedMode = document.querySelector('input[name="mode"]:checked').value;
+            gameMode = selectedMode;
+            
             gameStarted();
         });
     }
